@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
@@ -10,6 +9,25 @@ const envFileName = ".env.local"
 
 func Env() error {
 	err := godotenv.Load(envFileName)
+	if err != nil {
+		return err
+	}
+
+	err = viper.BindEnv("projectPath", "PROJECT_PATH")
+	if err != nil {
+		return err
+	}
+	err = viper.BindEnv("configPath", "CONFIG_PATH")
+	if err != nil {
+		return err
+	}
+
+	err = viper.BindEnv("httpHost", "HTTP_HOST")
+	if err != nil {
+		return err
+	}
+
+	err = viper.BindEnv("httpPort", "HTTP_PORT")
 	if err != nil {
 		return err
 	}
@@ -42,9 +60,6 @@ func Env() error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(viper.GetString("host"))
-	viper.AddConfigPath(viper.GetString("CONFIG_PATH"))
 
 	return nil
 }

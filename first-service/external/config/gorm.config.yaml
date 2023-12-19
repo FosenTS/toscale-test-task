@@ -1,3 +1,0 @@
-maxIdleConnections: 100
-maxOpenConnections: 100
-connectionMaxLifeTimeSecond: 200

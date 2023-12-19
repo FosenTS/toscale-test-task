@@ -37,11 +37,18 @@ func Gorm() (GormConfig, error) {
 
 	gormConfigInst.TimeZone = timeZone
 
-	viper.SetConfigFile(gormConfigFileName)
-	viper.SetConfigType("yaml")
-	gormConfigInst.MaxIdleConnections = viper.GetInt("maxIdleConnections")
-	gormConfigInst.MaxOpenConnection = viper.GetInt("maxOpenConnections")
-	gormConfigInst.ConnectionMaxLifeTime = time.Duration(viper.GetInt("connectionMaxLifeTimeSecond")) * time.Second
+	gormConfigViper := viper.New()
+	gormConfigViper.AddConfigPath(viper.GetString("configPath"))
+	gormConfigViper.SetConfigName(gormConfigFileName)
+	gormConfigViper.SetConfigType("yaml")
+	err = gormConfigViper.ReadInConfig()
+	if err != nil {
+		return GormConfig{}, err
+	}
+
+	gormConfigInst.MaxIdleConnections = gormConfigViper.GetInt("maxIdleConnections")
+	gormConfigInst.MaxOpenConnection = gormConfigViper.GetInt("maxOpenConnections")
+	gormConfigInst.ConnectionMaxLifeTime = time.Duration(gormConfigViper.GetInt("connectionMaxLifeTimeSecond")) * time.Second
 
 	return *gormConfigInst, nil
 }
