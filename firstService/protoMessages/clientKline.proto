@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package secondService.protoMessages;
+
+option go_package = "./protoMessages";
+
+message KlineRequest {
+  string symbol = 1;
+  string interval = 2;
+}
+
+message Kline {
+  int64 klineOpenTime = 1;
+  float openPrice = 2;
+  float highPrice = 3;
+  float lowPrice = 4;
+  float closePrice = 5;
+  float volume = 6;
+  int64 klineCloseTime = 7;
+  float quoteAssetVolume = 8;
+  int64 numberOfTrades = 9;
+  float takerBuyBaseAssetVolume = 10;
+  float takerBuyQuoteAssetVolume = 11;
+}
+
+message KlineResponce {
+  repeated Kline items = 1;
+}
+
+service KlineService {
+  rpc Kline(KlineRequest) returns (KlineResponce) {};
+}
