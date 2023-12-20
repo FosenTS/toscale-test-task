@@ -3,14 +3,15 @@ package application
 import (
 	"context"
 	"fmt"
+	"github.com/AubSs/fasthttplogger"
+	"github.com/fasthttp/router"
 	"github.com/sirupsen/logrus"
 	"github.com/valyala/fasthttp"
+	"golang.org/x/sync/errgroup"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"time"
-	config "toscale-test-task/first-service/internal/application/config"
-
-	"golang.org/x/sync/errgroup"
+	"toscale-test-task/first-service/internal/application/config"
+	"toscale-test-task/first-service/internal/application/product"
 )
 
 type App interface {
@@ -19,8 +20,9 @@ type App interface {
 }
 
 type app struct {
-	db         *gorm.DB
+	endpoint   *product.Endpoints
 	httpConfig *config.HTTPConfig
+	log        *logrus.Entry
 }
 
 func NewApp(ctx context.Context, log *logrus.Entry) (App, error) {
@@ -37,7 +39,7 @@ func NewApp(ctx context.Context, log *logrus.Entry) (App, error) {
 		return nil, err
 	}
 
-	gormConn, err := createGormConnection(
+	gormDB, err := createGormConnection(
 		gormConfig,
 		log.WithField("location", "gorm"))
 	if err != nil {
@@ -50,9 +52,19 @@ func NewApp(ctx context.Context, log *logrus.Entry) (App, error) {
 		return nil, err
 	}
 
+	storages := product.NewStorages(gormDB)
+
+	services := product.NewServices(storages)
+
+	gateways := product.NewGateways(services)
+
+	controllers := product.NewControllers(gateways)
+
+	endpoints := product.NewEndpoints(controllers)
 	return &app{
-		db:         gormConn,
+		endpoint:   endpoints,
 		httpConfig: httpConfig,
+		log:        log.WithField("location", "app"),
 	}, nil
 }
 
@@ -67,16 +79,18 @@ func (app *app) Run(ctx context.Context, log *logrus.Entry) error {
 }
 
 func (app *app) runHTTP(log *logrus.Entry) error {
-	err := fasthttp.ListenAndServe(app.httpConfig.HttpServer, fasthttp.TimeoutHandler(func(ctx *fasthttp.RequestCtx) {
-		select {
-		case <-ctx.Done():
-			// ctx.Done() is only closed when the server is shutting down.
-			log.Println("context cancelled")
-			return
-		case <-time.After(10 * time.Second):
-			log.Println("process finished ok")
+	app.log.Infoln("Configure api routes")
+
+	r := router.New()
+	app.endpoint.Controllers.HttpController.HandlerRouter(r.Group("/api"))
+	list := r.List()
+	for key, routesGroup := range list {
+		for _, route := range routesGroup {
+			log.Infoln(fmt.Sprintf("%s : %s", key, route))
 		}
-	}, time.Second*2, "timeout"))
+	}
+
+	err := fasthttp.ListenAndServe(app.httpConfig.HttpServer, fasthttplogger.CombinedColored(r.Handler))
 	if err != nil {
 		log.Fatalln(fmt.Sprintf("Error start listen and serve http server: %w", err))
 		return err

@@ -11,9 +11,14 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	_, err := application.NewApp(ctx, log.WithField("location", "application"))
+	app, err := application.NewApp(ctx, log.WithField("location", "application"))
 	if err != nil {
 		log.Fatalln("fatal error creating application")
+		return
+	}
+	err = app.Run(ctx, log.WithField("location", "runner"))
+	if err != nil {
+		log.Fatalln("fatal run application")
 		return
 	}
 }
