@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/AubSs/fasthttplogger"
 	"github.com/fasthttp/router"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	"github.com/sirupsen/logrus"
 	"github.com/valyala/fasthttp"
 	"golang.org/x/sync/errgroup"
@@ -142,7 +144,12 @@ func createGormConnection(cfg *config.GormConfig, log *logrus.Entry) (*gorm.DB, 
 }
 
 func createGRPCConnection(cfg *config.GRPCConfig, log *logrus.Entry) (protoMessages.KlineServiceClient, error) {
-	conn, err := grpc.Dial(cfg.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(
+		cfg.Address,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(grpc_logrus.UnaryClientInterceptor(log))),
+		grpc.WithStreamInterceptor(grpc_middleware.ChainStreamClient(grpc_logrus.StreamClientInterceptor(log))),
+	)
 	if err != nil {
 		log.Fatalln(fmt.Errorf("did not connect: %w", err))
 		return nil, err

@@ -3,6 +3,11 @@ package application
 import (
 	"context"
 	"fmt"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -70,7 +75,18 @@ func (app *app) runGRPCServer(log *logrus.Entry, config *config.GRPCConfig) erro
 		return err
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
+		grpc_ctxtags.StreamServerInterceptor(),
+		grpc_opentracing.StreamServerInterceptor(),
+		grpc_logrus.StreamServerInterceptor(log),
+		grpc_recovery.StreamServerInterceptor(),
+	)),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+			grpc_ctxtags.UnaryServerInterceptor(),
+			grpc_opentracing.UnaryServerInterceptor(),
+			grpc_logrus.UnaryServerInterceptor(log),
+			grpc_recovery.UnaryServerInterceptor(),
+		)))
 
 	app.endpoints.RegisterServer(grpcServer)
 

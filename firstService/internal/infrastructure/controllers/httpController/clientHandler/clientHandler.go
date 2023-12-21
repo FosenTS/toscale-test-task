@@ -26,7 +26,6 @@ func (cH *ClientHandler) HandlerRouter(g *router.Group) {
 }
 
 func (cH *ClientHandler) clientRequest(ctx *fasthttp.RequestCtx) {
-	fmt.Println("Client Connected")
 	args := ctx.QueryArgs()
 	symbol := string(args.Peek("symbol"))
 	interval := string(args.Peek("interval"))

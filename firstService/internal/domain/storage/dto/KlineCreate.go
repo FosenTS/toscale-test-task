@@ -3,8 +3,8 @@ package dto
 import "toscale-test-task/firstService/internal/domain/entity"
 
 type KlineCreate struct {
-	Symbol   string `json:"symbol" gorm:"<-:create" binding:"required"`
-	Interval string `json:"interval" gorm:"<-create" binding:"required"`
+	Symbol   string `json:"symbol" gorm:"<-:create, index" binding:"required"`
+	Interval string `json:"interval" gorm:"<-create, indexß" binding:"required"`
 
 	KlineOpenTime            int64   `json:"klineOpenTime" binding:"required"`
 	OpenPrice                float32 `json:"openPrice" binding:"required"`
